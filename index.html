@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Studio - Home</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+  /* Reset and base */
+  * {
+    margin: 0; padding: 0; box-sizing: border-box;
+  }
+  body, html {
+    height: 100%;
+    font-family: 'Montserrat', sans-serif;
+    background: linear-gradient(135deg, #1e1e2f, #282c3a);
+    color: #f0f0f0;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: "";
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, #3a3f58, transparent 70%);
+    animation: pulse 20s linear infinite alternate;
+    z-index: -1;
+    opacity: 0.3;
+  }
+  @keyframes pulse {
+    0% { transform: translate(0,0) scale(1);}
+    100% { transform: translate(50px,50px) scale(1.1);}
+  }
+
+  /* Container */
+  .container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 20px;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 10px #007BFF;
+  }
+
+  p.subtitle {
+    font-size: 1.25rem;
+    color: #a0a0b2;
+    margin-bottom: 2rem;
+  }
+
+  /* Buttons container */
+  .btn-group {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* Buttons style */
+  .btn {
+    background: #007BFF;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 15px 35px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+    user-select: none;
+  }
+  .btn:hover {
+    background: #0056b3;
+    box-shadow: 0 6px 20px rgba(0,86,179,0.7);
+    transform: translateY(-4px);
+  }
+  .btn:active {
+    transform: translateY(-1px);
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    h1 {
+      font-size: 2.2rem;
+    }
+    .btn {
+      padding: 12px 25px;
+      font-size: 1rem;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>AI Studio</h1>
+    <p class="subtitle">Explore AI tools that empower your creativity</p>
+    <div class="btn-group">
+      <button class="btn" onclick="navigateTo('translator.html')">Pashto Translator</button>
+      <button class="btn" onclick="navigateTo('pdf_summarizer.html')">PDF Summarizer</button>
+      <button class="btn" onclick="navigateTo('gender_age_detector.html')">Gender & Age Detector</button>
+    </div>
+  </div>
+
+  <script>
+    function navigateTo(page) {
+      window.location.href = page;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Age & Gender Detector</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    h2 { margin-bottom: 20px; }
+    input[type="file"] {
+      margin-bottom: 20px;
+      color: white;
+    }
+    #preview {
+      margin: 20px 0;
+      border-radius: 8px;
+      max-width: 300px;
+    }
+    #result {
+      background-color: #1e1e1e;
+      padding: 20px;
+      border: 1px solid #444;
+      border-radius: 6px;
+      width: 300px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🧠 AI Gender & Age Detector</h2>
+  <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+  <img id="preview" />
+  <div id="result">Upload an image to analyze...</div>
+
+  <!-- Face API.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <script>
+    async function handleImageUpload(input) {
+      const resultDiv = document.getElementById('result');
+      const image = document.getElementById('preview');
+
+      if (!input.files || !input.files[0]) {
+        resultDiv.innerText = "Please select a valid image.";
+        return;
+      }
+
+      const file = input.files[0];
+      image.src = URL.createObjectURL(file);
+
+      resultDiv.innerText = "Detecting age and gender...";
+
+      await loadModels();
+
+      const detections = await faceapi.detectSingleFace(image).withAgeAndGender();
+
+      if (detections) {
+        const age = detections.age.toFixed(1);
+        const gender = detections.gender;
+        const genderProb = (detections.genderProbability * 100).toFixed(1);
+
+        resultDiv.innerHTML = `
+          <strong>Gender:</strong> ${gender} (${genderProb}%)<br>
+          <strong>Estimated Age:</strong> ${age} years
+        `;
+      } else {
+        resultDiv.innerText = "No face detected. Please try another image.";
+      }
+    }
+
+    async function loadModels() {
+        await Promise.all([
+  faceapi.nets.ssdMobilenetv1.loadFromUri('/weights'),
+  faceapi.nets.ageGenderNet.loadFromUri('/weights')
+]);
+
+    }
+  </script>
+
+</body>
+</html>
