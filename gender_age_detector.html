@@ -47,6 +47,7 @@
   <input type="file" accept="image/*" onchange="handleImageUpload(this)">
   <img id="preview" />
   <div id="result">Upload an image to analyze...</div>
+<div id="status" style="margin-top: 10px; color: lightgray;"></div>
 
   <!-- Face API.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -84,13 +85,15 @@
       }
     }
 
-    async function loadModels() {
-      await Promise.all([
-        faceapi.nets.ssdMobilenetv1.loadFromUri('/weights'),
-        faceapi.nets.ageGenderNet.loadFromUri('/weights')
-      ]);
+async function loadModels() {
+  document.getElementById("status").innerText = "Loading models...";
+  await Promise.all([
+    faceapi.nets.ssdMobilenetv1.loadFromUri('weights'),
+    faceapi.nets.ageGenderNet.loadFromUri('weights')
+  ]);
+  document.getElementById("status").innerText = "Models loaded successfully!";
+}
 
-    }
   </script>
 
 </body>
