@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Image → Text — OCR Agent (Tesseract.js)</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#94a3b8;--accent:#7c3aed}
+    *{box-sizing:border-box}
+    body{font-family:Inter,ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; min-height:100vh; background:linear-gradient(180deg,#071025 0%, #071224 60%); color:#e6eef8; display:flex; align-items:center; justify-content:center; padding:28px}
+    .app{width:100%;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.04)); border-radius:14px; padding:20px; box-shadow:0 8px 30px rgba(2,6,23,0.6); border:1px solid rgba(255,255,255,0.03)}
+    header{display:flex;gap:16px;align-items:center}
+    h1{font-size:18px;margin:0}
+    p.lead{margin:2px 0 12px;color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:380px 1fr; gap:18px}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.03)); padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.02)}
+
+    .uploader{display:flex;flex-direction:column; gap:10px}
+    .drop{border:2px dashed rgba(255,255,255,0.04); border-radius:8px; padding:18px; text-align:center; cursor:pointer}
+    .drop.dragover{border-color:var(--accent); box-shadow:0 6px 20px rgba(124,58,237,0.08)}
+    .preview{display:block; width:100%; height:240px; object-fit:contain; background:#06111b; border-radius:8px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    button, select{background:transparent;border:1px solid rgba(255,255,255,0.06); padding:8px 10px;border-radius:8px;color:inherit;cursor:pointer}
+    button.primary{background:var(--accent);border:none;color:white;padding:10px 12px}
+
+    .progress{height:12px;background:rgba(255,255,255,0.04); border-radius:999px; overflow:hidden}
+    .progress > i{display:block;height:100%; width:0%; background:linear-gradient(90deg, rgba(124,58,237,0.9), rgba(124,58,237,0.6)); transition:width .2s}
+
+    .result{white-space:pre-wrap; font-family:Menlo,monospace; font-size:13px; color:#dbeafe; min-height:240px; overflow:auto; padding:12px; border-radius:8px; background:#041523}
+    .result-toolbar{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}
+    .muted{color:var(--muted);font-size:13px}
+    footer{margin-top:14px;color:var(--muted);font-size:13px}
+
+    @media (max-width:900px){.grid{grid-template-columns:1fr;}.preview{height:200px}}
+  </style>
+</head>
+<body>
+  <div class="app" role="application">
+    <header>
+      <div>
+        <h1>Image → Text • OCR agent</h1>
+        <p class="lead">Drop an image, take a photo or choose a file. This single-file demo uses <strong>Tesseract.js</strong> (client-side OCR).</p>
+      </div>
+    </header>
+
+    <div class="grid" style="margin-top:12px">
+      <div class="panel">
+        <div class="uploader">
+          <label class="drop" id="dropzone">Click or drop an image here<br><small class="muted">jpg, png, webp, bmp, gif</small>
+            <input id="fileinput" type="file" accept="image/*" style="display:none">
+          </label>
+
+          <img id="preview" class="preview" alt="image preview" src="" />
+
+          <div class="controls">
+            <button id="chooseBtn">Choose file</button>
+            <button id="cameraBtn">Use camera</button>
+            <select id="langSelect" title="language">
+              <option value="eng" selected>English (eng)</option>
+              <option value="spa">Spanish (spa)</option>
+              <option value="fra">French (fra)</option>
+              <option value="deu">German (deu)</option>
+              <option value="ita">Italian (ita)</option>
+              <!-- add more langs if you host tessdata -->
+            </select>
+            <button id="startBtn" class="primary">Recognize text</button>
+            <button id="clearBtn">Clear</button>
+          </div>
+
+          <div style="margin-top:8px">
+            <div class="muted">Progress</div>
+            <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+            <div class="muted" id="log">Idle</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="result-toolbar">
+          <div class="muted">Result (editable)</div>
+          <div style="display:flex;gap:8px">
+            <button id="copyBtn">Copy</button>
+            <button id="downloadBtn">Download .txt</button>
+          </div>
+        </div>
+
+        <div id="result" class="result" contenteditable="true" aria-label="recognized text">No text recognized yet.</div>
+        <footer>Tip: click inside the result to edit. For better OCR: high contrast images, larger text, straight orientation.</footer>
+      </div>
+    </div>
+
+    <!-- Tesseract.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
+    <script>
+      // Elements
+      const drop = document.getElementById('dropzone');
+      const fileInput = document.getElementById('fileinput');
+      const preview = document.getElementById('preview');
+      const chooseBtn = document.getElementById('chooseBtn');
+      const cameraBtn = document.getElementById('cameraBtn');
+      const startBtn = document.getElementById('startBtn');
+      const clearBtn = document.getElementById('clearBtn');
+      const progressBar = document.getElementById('progressBar');
+      const log = document.getElementById('log');
+      const result = document.getElementById('result');
+      const copyBtn = document.getElementById('copyBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const langSelect = document.getElementById('langSelect');
+
+      let currentBlob = null;
+
+      // Helpers
+      function setProgress(p){ progressBar.style.width = (p*100).toFixed(1) + '%'; }
+      function setLog(s){ log.textContent = s; }
+
+      // File selection
+      chooseBtn.addEventListener('click', ()=> fileInput.click());
+      drop.addEventListener('click', ()=> fileInput.click());
+      fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+      // Drag & drop
+      ['dragenter','dragover'].forEach(evt => drop.addEventListener(evt, (e)=>{ e.preventDefault(); drop.classList.add('dragover'); }))
+      ['dragleave','drop'].forEach(evt => drop.addEventListener(evt, (e)=>{ e.preventDefault(); drop.classList.remove('dragover'); }))
+      drop.addEventListener('drop', e => {
+        if(e.dataTransfer.files && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+      })
+
+      function handleFiles(files){
+        const f = files[0];
+        if(!f) return;
+        if(!f.type.startsWith('image/')){ alert('Please choose an image file.'); return; }
+        currentBlob = f;
+        const url = URL.createObjectURL(f);
+        preview.src = url;
+        preview.onload = ()=> URL.revokeObjectURL(url);
+        setLog('Image loaded. Ready to recognize.');
+      }
+
+      // Camera capture (mobile)
+      cameraBtn.addEventListener('click', ()=>{
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.accept = 'image/*';
+        inp.capture = 'environment';
+        inp.addEventListener('change', e => handleFiles(e.target.files));
+        inp.click();
+      });
+
+      // Clear
+      clearBtn.addEventListener('click', ()=>{
+        preview.src = '';
+        result.textContent = 'No text recognized yet.';
+        currentBlob = null;
+        setProgress(0);
+        setLog('Cleared.');
+      })
+
+      // Recognize
+      startBtn.addEventListener('click', async ()=>{
+        if(!currentBlob){ alert('Choose or drop an image first.'); return; }
+        result.textContent = 'Recognizing — please wait...';
+        setProgress(0);
+        setLog('Starting OCR worker...');
+
+        try{
+          const lang = langSelect.value || 'eng';
+          // Tesseract.js worker approach
+          const worker = Tesseract.createWorker({
+            logger: m => {
+              if(m.status === 'recognizing text' && m.progress) setProgress(m.progress);
+              setLog((m.status || '') + (m.progress ? ' — ' + Math.round(m.progress*100) + '%' : ''));
+            }
+          });
+
+          await worker.load();
+          await worker.loadLanguage(lang);
+          await worker.initialize(lang);
+          const { data: { text } } = await worker.recognize(currentBlob);
+          await worker.terminate();
+
+          result.textContent = text || '[no text found]';
+          setProgress(1);
+          setLog('Done');
+        }catch(err){
+          console.error(err);
+          setLog('Error: ' + (err.message || err));
+          result.textContent = 'Error during recognition. See console.';
+        }
+      });
+
+      // Copy
+      copyBtn.addEventListener('click', async ()=>{
+        try{
+          await navigator.clipboard.writeText(result.textContent);
+          setLog('Copied to clipboard');
+        }catch(e){ setLog('Copy failed'); }
+      });
+
+      // Download
+      downloadBtn.addEventListener('click', ()=>{
+        const blob = new Blob([result.textContent], {type:'text/plain;charset=utf-8'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'ocr-result.txt';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+
+      // Accessibility: allow dropzone to accept Enter
+      drop.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') fileInput.click(); });
+
+    </script>
+  </div>
+</body>
+</html>
